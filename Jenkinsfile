@@ -1,21 +1,58 @@
 pipeline {
     agent any
+
+    environment {
+        IMAGE_NAME = "secureapp"
+    }
+
     stages {
-        stage('Setup') {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/atharvmalve/pythonn'
+            }
+        }
+
+        stage('Install Dependencies') {
             steps {
                 sh 'python -m venv venv'
-                sh './venv/Scripts/pip install -r requirements.txt'
+                sh './venv/bin/pip install -r requirements.txt'
             }
         }
+
+        stage('Lint') {
+            steps {
+                sh './venv/bin/flake8 .'
+            }
+        }
+
         stage('Test') {
             steps {
-                sh './venv/Scripts/python -m unittest discover tests'
+                sh './venv/bin/pytest tests/'
             }
         }
-        stage('Run') {
+
+        stage('Build Docker Image') {
             steps {
-                sh './venv/Scripts/python app.py'
+                sh "docker build -t ${IMAGE_NAME}:latest ."
             }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh "docker run -d -p 5000:5000 ${IMAGE_NAME}:latest"
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline finished!'
+        }
+        success {
+            echo 'Build succeeded!'
+        }
+        failure {
+            echo 'Build failed!'
         }
     }
 }
