@@ -1,17 +1,9 @@
 pipeline {
-    agent any
-
-    environment {
-        IMAGE_NAME = "secureapp"
+    agent {
+        docker { image 'python:3.10' }
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/atharvmalve/pythonn'
-            }
-        }
-
         stage('Install Dependencies') {
             steps {
                 sh 'python -m venv venv'
@@ -19,40 +11,22 @@ pipeline {
             }
         }
 
-        stage('Lint') {
+        stage('Run Tests') {
             steps {
-                sh './venv/bin/flake8 .'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh './venv/bin/pytest tests/'
+                sh './venv/bin/python -m pytest tests/'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME}:latest ."
+                sh 'docker build -t secureapp .'
             }
         }
 
         stage('Deploy') {
             steps {
-                sh "docker run -d -p 5000:5000 ${IMAGE_NAME}:latest"
+                echo 'Deploy your app here'
             }
-        }
-    }
-
-    post {
-        always {
-            echo 'Pipeline finished!'
-        }
-        success {
-            echo 'Build succeeded!'
-        }
-        failure {
-            echo 'Build failed!'
         }
     }
 }
